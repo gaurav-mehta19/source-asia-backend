@@ -9,7 +9,7 @@ curl https://source-asia-backend-lbl5.onrender.com/health
 # → {"status":"ok"}
 ```
 
-> Hosted on Render's free tier. The service sleeps after 15 min of inactivity, so the **first request may take ~30 s** while it cold-starts; subsequent calls are sub-second. In-memory state (rate-limit counters, products) resets on cold start — see [Production Limitations](#9-production-limitations--migration-path).
+> **Hosted on Render's free tier.** The service sleeps after 15 min of inactivity. During the ~10–30 s spin-up window, Render's edge proxy returns a plaintext `404 Not Found` (look for the `x-render-routing: no-server` header — that 404 is from Render, not this service). **Retry once after a few seconds** and you'll get a real response with `x-render-origin-server: Render` in the headers. Subsequent calls are sub-second. In-memory state (rate-limit counters, products) also resets on cold start — see [Production Limitations](#9-production-limitations--migration-path).
 
 ---
 
@@ -405,6 +405,7 @@ It **never** reads `r.media[id]`. The `media` map holds potentially large `[]str
 - **Single instance only**: rate-limit state and product data live in process memory. A restart loses all data. Horizontal scaling would give each instance independent counters — violating the "5 per user" guarantee.
 - **No persistence**: no database backing.
 - **No CDN**: media URLs are stored as-is; no transformation pipeline.
+- **Render free-tier cold start**: the live deployment sleeps after 15 min of inactivity. During the spin-up window Render's edge serves a plaintext `404 Not Found` (header `x-render-routing: no-server`) — this is **not a missing route**, it's the upstream not being ready yet. A retry after a few seconds reaches the warm container (header `x-render-origin-server: Render`). On a paid tier or with a 5-min uptime ping this disappears.
 - **Per-product media cap is a hard limit, not a paginated structure**: combined `image_urls + video_urls` is bounded by `PRODUCT_MAX_MEDIA_PER_PRODUCT` (default 200). A real catalog with thousands of variant images per product would store media in a separate paginated table (see Postgres schema below) and serve it via a dedicated `GET /products/{id}/media?cursor=…` endpoint rather than embedding the full array in the detail response.
 - **No DELETE / PATCH endpoints**: products and media URLs cannot be removed or reordered. The `sortedIDs` slice that backs list pagination is append-only.
 
