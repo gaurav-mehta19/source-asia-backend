@@ -2,6 +2,15 @@
 
 A production-grade Go HTTP API implementing a rate-limited request endpoint and a product catalog, built for the Source Asia Backend Assignment.
 
+**Live demo:** https://source-asia-backend-lbl5.onrender.com
+
+```bash
+curl https://source-asia-backend-lbl5.onrender.com/health
+# → {"status":"ok"}
+```
+
+> Hosted on Render's free tier. The service sleeps after 15 min of inactivity, so the **first request may take ~30 s** while it cold-starts; subsequent calls are sub-second. In-memory state (rate-limit counters, products) resets on cold start — see [Production Limitations](#9-production-limitations--migration-path).
+
 ---
 
 ## 1. Overview
