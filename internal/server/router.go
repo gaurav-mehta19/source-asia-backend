@@ -15,10 +15,11 @@ import (
 
 // NewRouter builds the chi router with all middleware and registered routes.
 // Middleware order (outermost → innermost):
-//  1. Recovery  — catches panics before anything logs
-//  2. RequestID — ID must exist before Logger reads it
-//  3. Logger    — logs the completed request with ID + status
+//  1. Recovery        — catches panics before anything logs
+//  2. RequestID       — ID must exist before Logger reads it
+//  3. Logger          — logs the completed request with ID + status
 //  4. ContentTypeJSON — enforced only on POST/PUT
+//  5. StripSlashes    — normalises /foo/ → /foo before route matching
 func NewRouter(cfg *config.Config, log *slog.Logger) http.Handler {
 	r := chi.NewRouter()
 

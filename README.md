@@ -36,7 +36,7 @@ HTTP Request
      │
      ▼
 ┌─────────────────────────────┐
-│  Middleware Chain           │  Recovery → RequestID → Logger → ContentTypeJSON
+│  Middleware Chain           │  Recovery → RequestID → Logger → ContentTypeJSON → StripSlashes
 └────────────┬────────────────┘
              │
              ▼
@@ -364,8 +364,15 @@ The `List` repository method is:
 for _, id := range r.sortedIDs[offset:end] {
     p := r.products[id]          // small struct — 5 fields
     counts := r.mediaCounts[id]  // two ints
-    thumb := r.thumbnails[id]    // one string pointer
-    // ... build ListItem
+    items = append(items, ListItem{
+        ID:           p.ID,
+        Name:         p.Name,
+        SKU:          p.SKU,
+        ImageCount:   counts.ImageCount,
+        VideoCount:   counts.VideoCount,
+        ThumbnailURL: r.thumbnails[id], // one string lookup
+        CreatedAt:    p.CreatedAt,
+    })
 }
 ```
 
@@ -503,7 +510,7 @@ All generated code was reviewed for correctness, concurrency safety, and alignme
 
 ### Automated Tests
 
-The repo ships with **24 unit and HTTP-level tests** covering the rate limiter (boundary, retry-after, sliding-window eviction, concurrent same-user, concurrent different-users), the product repository (list/detail split, defensive slice copy, pagination, thumbnail caching, `UpdatedAt` updates), and the HTTP handlers (status codes, validation, headers).
+The repo ships with **33 top-level unit and HTTP-level tests** (40 with subtests) covering the rate limiter (boundary, retry-after, sliding-window eviction, concurrent same-user, concurrent different-users), the product repository (list/detail split, defensive slice copy, pagination, thumbnail caching, `UpdatedAt` updates, per-product media cap, atomic AddMedia), and the HTTP handlers (status codes, validation, Retry-After header, cap enforcement).
 
 ```bash
 # Run everything with the race detector
